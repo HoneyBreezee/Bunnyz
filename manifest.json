@@ -1,0 +1,9 @@
+{
+    "name": "bunny-translator",
+    "display_name": "🐰 Bunny Translator",
+    "version": "1.4.6",
+    "description": "SillyTavern용 맞춤형 번역 확장 — 서술·대사 지침 분리·내부 입력 번역·구조 자동 복원",
+    "author": "냥헴 & GPT & Claude",
+    "js": "index.js",
+    "css": "style.css"
+}

@@ -1,0 +1,390 @@
+/* ============================================================
+   🐰 Translator v1.1.0 - style.css
+   ============================================================ */
+[data-bunny-theme="cat"], body:not([data-bunny-theme]) {
+    --ca-glow: rgba(255, 165, 0, 0.6);
+    --ca-glow-strong: rgba(255, 165, 0, 0.9);
+    --ca-accent: #f0a030;
+    --ca-bg: rgba(255, 165, 0, 0.08);
+    --ca-border: rgba(255, 165, 0, 0.3);
+}
+[data-bunny-theme="tiger"] {
+    --ca-glow: rgba(255, 215, 0, 0.7);
+    --ca-glow-strong: rgba(255, 215, 0, 1);
+    --ca-accent: #ffd700;
+    --ca-bg: rgba(255, 215, 0, 0.08);
+    --ca-border: rgba(255, 215, 0, 0.3);
+}
+#bunny-trans-container { font-family: var(--mainFontFamily, 'Noto Sans', sans-serif); }
+#bunny-drawer-header { display: flex !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; padding: 0.5em 0.8em !important; min-height: 3em !important; }
+#bunny-drawer-header .inline-drawer-title { display: flex; align-items: center; gap: 8px; flex: 1; font-size: 1.05em; font-weight: 600; color: var(--SmartThemeBodyColor, #000); }
+#bunny-drawer-toggle { transition: transform 0.2s ease-in-out; display: flex !important; align-items: center !important; align-self: center !important; justify-content: center !important; line-height: 1 !important; height: 100% !important; }
+#bunny-drawer-header i#bunny-drawer-toggle { line-height: 1 !important; }
+.bunny-setting-row { margin-bottom: 8px; }
+.bunny-setting-row > label { display: block; font-size: 0.95em; font-weight: 600; margin-bottom: 3px; color: var(--SmartThemeBodyColor, #000); }
+.bunny-readonly-area { background: var(--SmartThemeBlurTintColor, rgba(128,128,128,0.1)) !important; opacity: 0.7; font-size: 0.8em; cursor: not-allowed; }
+.bunny-stats-bar { font-size: 0.9em; padding: 8px 12px; border-radius: 6px; background: var(--ca-bg); border: 1px solid var(--ca-border); text-align: center; color: var(--SmartThemeBodyColor, #000); margin-top: 8px; }
+.bunny-save-button { background: var(--ca-bg) !important; border: 1px solid var(--ca-accent) !important; color: var(--SmartThemeBodyColor, #000) !important; font-weight: bold; border-radius: 8px; padding: 10px; }
+.bunny-save-button:hover { background: var(--ca-border) !important; }
+.bunny-btn-secondary { font-size: 0.95em; padding: 8px 12px; border-radius: 6px; }
+
+/* 🚨 마스터 튜닝: 발바닥 정중앙 영구 고정 */
+.bunny-paw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.5em; z-index: 1; user-select: none; transition: transform 0.2s; padding: 8px; line-height: 1; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+.bunny-paw-toggle:hover { transform: translateY(-50%) scale(1.15); }
+.bunny-paw-toggle:active { transform: translateY(-50%) scale(0.95); opacity: 0.7; }
+
+.bunny-emoji-icon { display: inline-block; line-height: 1; transition: all 0.2s; will-change: transform, filter; transform: translateZ(0); -webkit-backface-visibility: hidden; }
+.bunny-glow-anim { animation: bunny-glow-pulse 1.2s infinite alternate ease-in-out !important; border-radius: 50%; }
+
+@keyframes bunny-glow-pulse {
+    0% { transform: scale(1) translateZ(0); filter: drop-shadow(0 0 2px var(--ca-glow)); }
+    100% { transform: scale(1.2) translateZ(0); filter: drop-shadow(0 0 12px var(--ca-glow-strong)); background-color: var(--ca-bg); }
+}
+
+/* 🚨 마스터 튜닝: 이름 옆 알약 배경 완전 삭제 (투명화) */
+.name_text { gap: 10px !important; flex-wrap: wrap !important; }
+.bunny-btn-group {
+    display: inline-flex !important;
+    gap: 10px !important;
+    margin-left: 10px !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    align-items: center !important;
+    vertical-align: middle !important;
+}
+.bunny-btn-group.bunny-hidden { display: none !important; }
+
+.bunny-mes-trans-btn, .bunny-mes-revert-btn { cursor: pointer; font-size: 1.3em; opacity: 0.8; transition: opacity 0.2s, transform 0.2s; }
+.bunny-mes-trans-btn:hover, .bunny-mes-revert-btn:hover { opacity: 1; transform: scale(1.15); }
+.bunny-mes-revert-btn { font-size: 1em; color: var(--ca-accent); }
+
+/* 🚨 편집 버튼: 기본 숨김, JS에서 인라인 스타일로 표시 제어 */
+.bunny-mes-edit-btn { cursor: pointer; font-size: 1.1em; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+.bunny-mes-edit-btn:hover { opacity: 1 !important; transform: scale(1.15); }
+
+/* 🚨 마스터 튜닝: 하단 버튼 간격(margin) 추가 및 inline-flex 적용으로 아이콘 겹침 완전 방지 */
+.bunny-input-icon { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 28px; padding: 0 !important; margin: 0 !important; flex-shrink: 0; border: none !important; outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; box-sizing: border-box; background: transparent !important; }
+.bunny-input-icon:active { opacity: 0.6; }
+.bunny-input-icon i { color: var(--ca-accent); font-size: 0.9em; }
+.bunny-input-icon .bunny-emoji-icon { font-size: 1.1em; pointer-events: none; }
+
+#send_but { margin-left: 2px !important; position: relative; z-index: 1; }
+
+.bunny-notification { position: fixed; top: -60px; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 30px; color: white; font-weight: bold; font-size: 13px; z-index: 2147483647 !important; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25); transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; white-space: nowrap; max-width: 85vw; overflow: hidden; text-overflow: ellipsis; text-align: center; font-family: var(--mainFontFamily, 'Noto Sans', sans-serif); backdrop-filter: blur(8px); }
+.bunny-notification.show { }
+
+.bunny-bulk-popup { background: var(--SmartThemeBlurTintColor, #2a2a2a); border: 1px solid var(--ca-border); border-radius: 10px; padding: 6px 0; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); min-width: 120px; overflow: hidden; }
+.bunny-bulk-option { padding: 10px 18px; cursor: pointer; font-size: 0.9em; color: var(--SmartThemeBodyColor, #fff); transition: background 0.15s; }
+.bunny-bulk-option:hover { background: var(--ca-bg); color: var(--ca-accent); }
+
+.bunny-history-popup { background: var(--SmartThemeBlurTintColor, #2a2a2a); border: 1px solid var(--ca-border); border-radius: 10px; padding: 6px 0; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); width: 280px; max-width: calc(100vw - 16px); max-height: 300px; overflow-y: auto; }
+.bunny-history-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 14px; cursor: pointer; font-size: 0.9em; color: var(--SmartThemeBodyColor, #fff); transition: background 0.15s; gap: 8px; }
+.bunny-history-item:hover { background: var(--ca-bg); }
+.bunny-history-item.bunny-pinned { border-left: 3px solid var(--ca-accent); }
+.bunny-history-text { flex: 1; overflow: hidden; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
+.bunny-history-pin { cursor: pointer; font-size: 0.9em; flex-shrink: 0; transition: transform 0.2s; }
+.bunny-history-pin:hover { transform: scale(1.3); }
+.bunny-history-new { border-top: 1px solid var(--ca-border); justify-content: center; font-weight: 600; color: var(--ca-accent); }
+
+.bunny-drag-paw { cursor: pointer; font-size: 2.2em; animation: bunny-paw-bounce 0.5s ease; user-select: none; filter: drop-shadow(0 2px 8px rgba(255, 105, 180, 0.6)); transition: transform 0.2s; }
+.bunny-drag-paw:hover { transform: scale(1.3); filter: drop-shadow(0 2px 12px rgba(255, 105, 180, 0.9)); }
+@keyframes bunny-paw-bounce { 0% { opacity: 0; transform: translateY(-10px) scale(0.5); } 70% { transform: translateY(3px) scale(1.1); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+.bunny-drag-popup { background: var(--SmartThemeBlurTintColor, #2a2a2a); border: 1px solid var(--ca-border); border-radius: 10px; padding: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); min-width: 220px; }
+.bunny-drag-header { font-size: 0.85em; font-weight: 600; margin-bottom: 8px; color: var(--SmartThemeBodyColor, #fff); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bunny-drag-input { width: 100%; margin-bottom: 8px; box-sizing: border-box; }
+.bunny-drag-actions { display: flex; gap: 6px; }
+.bunny-drag-actions button { flex: 1; font-size: 0.85em; padding: 6px; border-radius: 6px; }
+.bunny-drag-register { background: var(--ca-bg) !important; border: 1px solid var(--ca-accent) !important; color: var(--ca-accent) !important; font-weight: 600; }
+
+@media (max-width: 768px) {
+    .bunny-notification { font-size: 12px; padding: 8px 16px; max-width: 90vw; }
+    .bunny-bulk-popup, .bunny-history-popup, .bunny-drag-popup { max-width: calc(100vw - 32px); }
+    #bunny-drawer-content [style*="display:flex"] { flex-wrap: nowrap !important; }
+    .bunny-input-icon { width: 18px; height: 24px; margin: 0 !important; }
+    .bunny-input-icon .bunny-emoji-icon { font-size: 1em; }
+    #send_but { margin-left: 2px !important; }
+}
+
+/* LLM 응답 로그: 모바일에서도 상단과 닫기 버튼이 항상 화면 안에 남도록 고정 */
+dialog.bunny-debug-overlay {
+    position: fixed !important;
+    inset: auto !important;
+    top: var(--bunny-debug-vv-top, 0px) !important;
+    left: var(--bunny-debug-vv-left, 0px) !important;
+    width: var(--bunny-debug-vv-width, 100vw) !important;
+    height: var(--bunny-debug-vv-height, 100dvh) !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    transform: none !important;
+    isolation: isolate;
+}
+dialog.bunny-debug-overlay::backdrop { background: transparent; }
+.bunny-debug-modal {
+    position: absolute !important;
+    top: max(8px, env(safe-area-inset-top, 0px)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 24px) !important;
+    max-width: 600px !important;
+    max-height: calc(100% - 16px - env(safe-area-inset-top, 0px)) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 12px;
+    box-sizing: border-box !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+.bunny-debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 8px;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid rgba(128,128,128,0.25);
+    background: inherit;
+    box-sizing: border-box;
+    z-index: 2;
+}
+.bunny-debug-title {
+    min-width: 0;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+.bunny-debug-close {
+    flex: 0 0 auto;
+    line-height: 1;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: rgba(255,255,255,0.2);
+}
+.bunny-debug-body {
+    min-height: 0;
+    padding: 12px 20px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .bunny-debug-modal {
+        top: max(6px, env(safe-area-inset-top, 0px)) !important;
+        width: calc(100% - 12px) !important;
+        max-height: calc(100% - 12px - env(safe-area-inset-top, 0px)) !important;
+        border-radius: 8px;
+    }
+    .bunny-debug-header { padding: 12px 12px 10px; }
+    .bunny-debug-body { padding: 10px 12px 14px; }
+    .bunny-debug-title { font-size: 0.98em !important; }
+    .bunny-debug-close { font-size: 1.7em !important; padding: 5px 8px !important; }
+}
+
+/* ============================================================
+   v1.0.5: 수정 히스토리 / 손상 복구 UI
+   ============================================================ */
+.bunny-mes-history-btn { cursor: pointer; margin-left: 4px; transition: opacity 0.2s, transform 0.2s; display: inline-block; }
+.bunny-mes-history-btn:hover { transform: scale(1.18); }
+
+/* 🚨 overlay는 ST 모바일 transform/positioning 충돌 회피를 위해 무조건 화면 전체 강제 */
+.bunny-edit-history-overlay,
+.bunny-manual-overlay {
+    position: fixed !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 2147483646 !important;
+    overflow: hidden !important;
+    animation: bunny-fade-in 0.18s ease;
+    /* flex 의존 제거 — popup 자체 positioning으로 화면 안 보장 */
+}
+/* 🚨 popup은 absolute로 top 고정 → flex 의존 없이 화면 안에 항상 위치 */
+.bunny-edit-history-popup, .bunny-manual-popup {
+    position: absolute !important;
+    top: 4vh !important;
+    top: 4dvh !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 540px !important;
+    max-height: 92vh !important;
+    max-height: 92dvh !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+    animation: bunny-pop-in 0.22s ease;
+}
+
+/* 🚨 헤더 sticky: 스크롤해도 ✕ 버튼이 항상 보이게 */
+.bunny-edit-history-header {
+    position: sticky;
+    top: 0;
+    background: var(--SmartThemeBlurTintColor, #222);
+    padding: 12px 0 10px;
+    margin: -4px 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    z-index: 2;
+}
+.bunny-edit-history-close, .bunny-manual-close {
+    font-size: 1.6em !important;
+    padding: 4px 10px !important;
+    line-height: 1 !important;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: rgba(255,255,255,0.2);
+}
+
+.bunny-edit-history-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; transition: background 0.15s, border-color 0.15s; text-align: left; }
+.bunny-edit-history-item:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.16); }
+.bunny-edit-history-meta { font-size: 0.78em; opacity: 0.6; margin-bottom: 5px; }
+.bunny-edit-history-text { font-size: 0.92em; line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin-bottom: 8px; max-height: 280px; overflow-y: auto; padding-right: 4px; }
+.bunny-edit-history-current { background: rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 6px; border-left: 3px solid var(--ca-accent, #ff69b4); }
+
+/* 🚨 button 세로 글자 픽스 — specificity 최강화 + menu_button override */
+.bunny-edit-history-popup button.bunny-edit-history-restore,
+button.bunny-edit-history-restore,
+.bunny-edit-history-restore {
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    word-wrap: normal !important;
+    overflow-wrap: normal !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    text-align: center !important;
+    padding: 6px 14px !important;
+    font-size: 0.88em !important;
+    line-height: 1.4 !important;
+    cursor: pointer;
+}
+.bunny-edit-history-empty { text-align: center; opacity: 0.6; padding: 28px 16px; font-size: 0.95em; line-height: 1.6; }
+
+/* 손상 복구 토스트 */
+.bunny-damaged-toast { animation: bunny-slide-up 0.25s ease; }
+.bunny-damaged-toast button { cursor: pointer; }
+
+/* 수동 입력 팝업 */
+.bunny-manual-textarea { font-family: monospace; font-size: 0.92em; line-height: 1.5; min-height: 140px; }
+
+@keyframes bunny-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bunny-pop-in { from { opacity: 0; transform: translateY(-8px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes bunny-slide-up { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+@media (max-width: 768px) {
+    .bunny-edit-history-popup, .bunny-manual-popup {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        max-height: 85vh !important;
+        max-height: 85dvh !important;
+        padding: 12px !important;
+        box-sizing: border-box !important;
+    }
+    .bunny-edit-history-text { max-height: 220px; font-size: 0.88em; }
+    .bunny-damaged-toast { font-size: 0.88em; bottom: 70px !important; padding: 8px 10px !important; max-width: 95vw !important; }
+    .bunny-edit-history-popup button.bunny-edit-history-restore,
+    button.bunny-edit-history-restore,
+    .bunny-edit-history-restore {
+        font-size: 0.95em !important;
+        padding: 8px 18px !important;
+        min-height: 36px !important;
+    }
+    .bunny-edit-history-close, .bunny-manual-close {
+        font-size: 1.8em !important;
+        padding: 6px 14px !important;
+    }
+}
+
+/* ============================================================
+   🔍 직역 병기 접이식 블록 (네이티브 details — 탭으로 접기/펼치기)
+   ============================================================ */
+.mes_text details.bunny-literal {
+    margin-top: 8px;
+    border-radius: 6px;
+}
+.mes_text details.bunny-literal summary {
+    cursor: pointer;
+    font-size: 0.82em;
+    opacity: 0.55;
+    user-select: none;
+    -webkit-user-select: none;
+    list-style-position: inside;
+    padding: 2px 0;
+}
+.mes_text details.bunny-literal summary:hover { opacity: 0.85; }
+.mes_text details.bunny-literal[open] summary { opacity: 0.75; margin-bottom: 4px; }
+.mes_text details.bunny-literal .bunny-literal-body {
+    font-size: 0.92em;
+    opacity: 0.85;
+    padding: 6px 10px;
+    margin: 0;
+    border-left: 2px solid rgba(150, 150, 150, 0.45);
+    line-height: 1.55;
+}
+
+/* 직역 병기 — 원문/직역 라벨 구조 */
+.mes_text details.bunny-literal .bunny-literal-label {
+    font-size: 0.78em;
+    font-weight: 600;
+    opacity: 0.55;
+    margin: 6px 0 2px 0;
+    letter-spacing: 0.03em;
+}
+.mes_text details.bunny-literal .bunny-literal-label:first-child { margin-top: 0; }
+.mes_text details.bunny-literal .bunny-literal-orig {
+    opacity: 0.75;
+    font-style: italic;
+    margin-bottom: 4px;
+    margin-top: 14px; /* 짝(원문↔직역) 사이 간격 — 모델이 빈 줄 안 넣어도 CSS가 강제 */
+}
+.mes_text details.bunny-literal .bunny-literal-orig:first-child { margin-top: 2px; }
+
+/* 직역 병기 — 문장별 원문↔직역 교차 표시 */
+.mes_text details.bunny-literal .bunny-literal-lit { margin-bottom: 2px; }
+.mes_text details.bunny-literal .bunny-literal-gap { height: 0; } /* 간격은 orig margin-top이 담당 — 중복 방지 */
+
+/* 직역 병기 v3.4 — <p> 짝 구조 보정 (CSS 먹는 환경에선 더 예쁘게, 안 먹어도 p 기본 여백으로 간격 유지) */
+.mes_text details.bunny-literal p.bunny-literal-pair { margin: 0 0 12px 0; }
+.mes_text details.bunny-literal p.bunny-literal-pair:last-child { margin-bottom: 2px; }
+
+/* 직역 병기 내부 — 형광펜/대사 스타일 무효화 (본문 형광펜은 유지, 접이식 안에서만 off)
+   ST가 "..." 를 <q>로 감싸고 사용자 커스텀 CSS가 배경을 입히는데,
+   직역 블록 안에서는 배경 덩어리가 짝 간격을 먹어버려 가독성을 해침 */
+.mes_text details.bunny-literal q,
+.mes_text details.bunny-literal em q {
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: inherit !important;
+    border-radius: 0 !important;
+}
+
+/* beta.16 — 히스토리 팝업: 더보기/개별 삭제 */
+.bunny-history-item .bunny-history-del {
+    margin-left: 6px;
+    opacity: 0.4;
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 2px 4px;
+}
+.bunny-history-item .bunny-history-del:hover { opacity: 0.9; color: #e05555; }
+.bunny-history-item.bunny-history-more {
+    text-align: center;
+    opacity: 0.6;
+    font-size: 0.88em;
+    cursor: pointer;
+}
+.bunny-history-item.bunny-history-more:hover { opacity: 0.9; }
