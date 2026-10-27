@@ -741,7 +741,8 @@ async function fetchTranslationAttempt(text, settings, stContext, options = {}) 
         retryReason = null,
         onCacheMiss = null,
         internalInputFast = false,
-        internalInputStrongRetry = false
+        internalInputStrongRetry = false,
+        retryInstruction = ''
     } = options;
     if (!text || text.trim() === "") return null;
     if (_qualityRetry === 0) {
@@ -881,6 +882,7 @@ async function fetchTranslationAttempt(text, settings, stContext, options = {}) 
         structureProtected: structureProtection.hasStructure,
         sourceText: text,
         retryReason,
+        retryInstruction,
         // 비제미나이/내부 고속 1차 호출은 로컬에서 추출한 말투 요약만 사용한다.
         // 이전 메시지 전문과 캐릭터 배경을 다시 싣는 순간 압축 systemInstruction의
         // 이점이 사라지고, 31B급 모델의 prompt ingestion 시간이 그대로 되살아난다.
@@ -3022,6 +3024,7 @@ export function assemblePrompt(text, targetLang, isToEnglish, settings, options 
         structureProtected = false,
         sourceText = text,
         retryReason = null,
+        retryInstruction = '',
         compactFastPrompt = false
     } = options;
     const bilingualMode = settings.dialogueBilingual || 'off';
@@ -3310,7 +3313,13 @@ ${matchedLines.join('\n')}`);
         }
     }
 
-    if (prevTranslation) {
+    if (retryInstruction && !isToEnglish) {
+        const safeInstruction = String(retryInstruction).trim().slice(0, 500);
+        parts.push(`[USER RETRANSLATION CORRECTION — HIGH PRIORITY FOR THIS REQUEST]
+The user requests the following correction to the Korean translation: ${safeInstruction}
+Apply this correction to the translation of the ORIGINAL source, not to the previous Korean wording. For speech-level requests such as "반말로 해" or "존댓말로 해", override the selected style's register rule ONLY for the dialogue being corrected in this request. Keep narration in past-tense prose, and preserve original facts, speaker identity, meaning, structure, and character voice. Do not translate or output the correction instruction itself. Do not change global settings.`);
+    }
+    if (prevTranslation && !retryInstruction) {
         const strength = settings.retranslateStrength || 'normal';
         if (strength === 'soft') {
             parts.push(`[Try a slightly different phrasing from this previous attempt: "${prevTranslation.substring(0, 200)}"]`);

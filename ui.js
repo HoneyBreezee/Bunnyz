@@ -1522,6 +1522,7 @@ export async function showHistoryPopup(originalText, targetLang, anchorEl, onSel
         items = `<div class="bunny-history-item bunny-history-prev" data-text="${encodeURIComponent(prevDisplay)}">↩️ 직전 번역: <span class="bunny-history-prev-preview">${$('<span>').text(prevTrunc).html()}</span></div>` + items;
     }
     items += `<div class="bunny-history-item bunny-history-new">🔄 새로 번역</div>`;
+    items += `<div class="bunny-retry-instruction" style="padding:9px 10px;border-top:1px solid var(--SmartThemeBorderColor,#777)"><label style="display:block;font-size:0.85em;margin-bottom:5px">🥕 재번역 요청 (선택)</label><textarea class="bunny-retry-text text_pole" rows="2" style="width:100%;box-sizing:border-box;resize:vertical" placeholder="예: 이 캐릭터 대사는 반말로 해 / 존댓말로 해 / 서술은 과거형으로"></textarea><button type="button" class="bunny-retry-submit menu_button" style="width:100%;margin-top:6px">🥕 요청대로 재번역</button></div>`;
 
     const popup = $(`<div class="bunny-history-popup">${items}</div>`);
     // 🚨 beta.15: 팝업 = 선택 대기 상태 → 글로우(작업 중 신호)는 팝업 열림과 동시에 끔
@@ -1589,6 +1590,15 @@ export async function showHistoryPopup(originalText, targetLang, anchorEl, onSel
         closePopup();
     });
 
+    popup.find('.bunny-retry-submit').on('click', () => {
+        if (ghostGuard() || newTransBusy) return;
+        const instruction = String(popup.find('.bunny-retry-text').val() || '').trim();
+        if (!instruction) { catNotify('재번역 요청을 입력해 주세요.', 'warning'); return; }
+        if (instruction.length > 500) { catNotify('요청은 500자 이내로 입력해 주세요.', 'warning'); return; }
+        newTransBusy = true;
+        onSelect(null, true, instruction);
+        closePopup();
+    });
     setTimeout(() => {
         $(document).on('click.catHistoryClose touchstart.catHistoryClose', (e) => {
             // 팝업이 이미 사라졌으면 (새로 번역 등) 글로우 건드리지 말고 핸들러만 해제

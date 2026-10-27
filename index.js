@@ -651,7 +651,7 @@ async function processMessage(id, isInput = false, abortSignal = null, silent = 
             // 🚨 beta.9: 직전 번역이 있고 현재 표시본과 다르면 팝업에 복귀 항목 제공
             const prevDisplayForPopup = (msg.extra?.cat_prev_display && msg.extra.cat_prev_display !== msg.extra?.display_text)
                 ? msg.extra.cat_prev_display : null;
-            const shown = await showHistoryPopup(textToTranslate, detected.targetLang, anchorEl, async (selectedText, isNew) => {
+            const shown = await showHistoryPopup(textToTranslate, detected.targetLang, anchorEl, async (selectedText, isNew, retryInstruction = '') => {
                 if (isNew) {
                     if (getLiveChat() !== processChatRef) {
                         console.warn(`[CAT] ⏭️ 채팅 전환으로 재번역 요청 취소 #${msgId}`);
@@ -662,7 +662,7 @@ async function processMessage(id, isInput = false, abortSignal = null, silent = 
                     const popupCtrl = new AbortController();
                     _activeTranslationAborts.set(msgId, popupCtrl);
                     try {
-                        await doTranslateMessage(msgId, msg, textToTranslate, isInput, existingTranslation, popupCtrl.signal, true, false, processChatRef);
+                        await doTranslateMessage(msgId, msg, textToTranslate, isInput, existingTranslation, popupCtrl.signal, true, false, processChatRef, null, retryInstruction);
                     } finally {
                         stopGlow();
                         if (_activeTranslationAborts.get(msgId) === popupCtrl) _activeTranslationAborts.delete(msgId);
@@ -723,7 +723,7 @@ async function processMessage(id, isInput = false, abortSignal = null, silent = 
     }
 }
 
-async function doTranslateMessage(msgId, msg, textToTranslate, isInput, prevTranslation, abortSignal, silent = false, forceFresh = false, requestChatRef = getLiveChat(), onCacheMiss = null) {
+async function doTranslateMessage(msgId, msg, textToTranslate, isInput, prevTranslation, abortSignal, silent = false, forceFresh = false, requestChatRef = getLiveChat(), onCacheMiss = null, retryInstruction = '') {
     if (getLiveChat() !== requestChatRef) return;
     const requestMsg = requestChatRef?.[msgId] || msg;
     const requestedSwipeId = requestMsg.swipe_id;
@@ -768,7 +768,8 @@ async function doTranslateMessage(msgId, msg, textToTranslate, isInput, prevTran
         abortSignal,
         silent,
         forceFresh,
-        onCacheMiss
+        onCacheMiss,
+        retryInstruction
     });
 
     if (_translationApplyTokens.get(msgId) !== requestToken) {
