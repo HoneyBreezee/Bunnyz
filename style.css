@@ -388,3 +388,10 @@ button.bunny-edit-history-restore,
     cursor: pointer;
 }
 .bunny-history-item.bunny-history-more:hover { opacity: 0.9; }
+
+/* Keep the custom retranslation field visible on narrow/mobile layouts. */
+.bunny-history-popup { width: min(320px, calc(100vw - 16px)); max-height: min(65vh, 520px); display: flex; flex-direction: column; overflow: hidden; }
+.bunny-history-popup > .bunny-history-item { flex-shrink: 0; }
+.bunny-history-popup > .bunny-retry-instruction { display: block !important; flex-shrink: 0; background: var(--SmartThemeBlurTintColor, #2a2a2a); }
+.bunny-history-popup .bunny-retry-text { display: block !important; min-height: 65px; color: var(--SmartThemeBodyColor, #fff); }
+.bunny-history-popup .bunny-retry-submit { display: flex !important; justify-content: center; align-items: center; min-height: 38px; }

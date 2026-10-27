@@ -1537,7 +1537,7 @@ export async function showHistoryPopup(originalText, targetLang, anchorEl, onSel
     const closePopup = () => { popup.remove(); $(document).off('click.catHistoryClose touchstart.catHistoryClose'); };
     
     const rect = anchorEl[0].getBoundingClientRect();
-    const popupWidth = 280;
+    const popupWidth = Math.min(320, window.innerWidth - 16);
     let leftPos = rect.left;
     
     if (leftPos + popupWidth > window.innerWidth - 8) {
@@ -1546,7 +1546,7 @@ export async function showHistoryPopup(originalText, targetLang, anchorEl, onSel
     leftPos = Math.max(8, leftPos);
     
     const spaceBelow = window.innerHeight - rect.bottom;
-    if (spaceBelow > 200) {
+    if (spaceBelow > 340) {
         popup.css({ position: 'fixed', top: (rect.bottom + 4) + 'px', left: leftPos + 'px', zIndex: 2147483647 });
     } else {
         popup.css({ position: 'fixed', bottom: (window.innerHeight - rect.top + 4) + 'px', left: leftPos + 'px', zIndex: 2147483647 });
