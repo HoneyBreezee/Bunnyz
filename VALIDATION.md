@@ -45,3 +45,6 @@
 기존 설정과 번역 이력은 유지합니다. 모델·문맥 캐시 키를 보강했으므로 업데이트 직후 기존 자동 캐시는 한 번 다시 번역될 수 있습니다. 고속모드는 선택 사항이며 기존 설정값을 유지합니다. 기존 확장 폴더에 전체 파일을 업데이트하고 새로고침한 후 디버그 버전 1.4.1을 확인하세요. 새 request.js도 함께 설치되어야 합니다.
 
 성별·숫자·맞춤법·의미 품질의 전면 보장은 아닙니다. 단위 검사도 단일 길이 표현 등 판별 가능한 제한된 사례만 다룹니다.
+
+## 2026-10-27 bilingual alignment safety fix
+When the model drops a quotation mark, partial bilingual repair no longer pairs all remaining quotations by global ordinal position. It only repairs paragraphs whose source/output quote counts agree; ambiguous paragraphs remain unpaired rather than showing incorrect English–Korean pairs. This prevents cascading one-slot shifts. Live SillyTavern testing is still required.

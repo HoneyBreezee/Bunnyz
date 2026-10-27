@@ -1,0 +1,1 @@
+Bunny bilingual recovery: one automatic retry for missing bilingual dialogue slots before partial fallback; quote restoration for unique protected anchors; paragraph-safe pairing remains. If retry fails, no fabricated pairing; partial results can remain.

@@ -1082,6 +1082,20 @@ async function fetchTranslationAttempt(text, settings, stContext, options = {}) 
         // 화면 번역의 형식·품질 검사는 재호출/출력 차단 권한이 없다. 읽을 수 있는
         // 응답이 있으면 위험한 토큰·깨진 태그/펜스만 정리하고 첫 결과를 즉시 표시한다.
         // 내부 입력은 결과가 RP 모델에 전달되므로 기존의 한 번 보정 경로를 유지한다.
+        // Bunny: malformed bilingual slots deserve one real model retry before any
+        // partial display. A missing quote must not shift all following dialogue.
+        const bilingualRepairNeeded = (settings.dialogueBilingual || 'off') === 'ko-en'
+            && targetLang === 'Korean' && /병기|대사|인용구/.test(reason);
+        if (bilingualRepairNeeded && _qualityRetry < 1 && canRequest(state)) {
+            console.warn('[BUNNY] Bilingual alignment failed; retrying with original protected structure');
+            return fetchTranslation(text, settings, stContext, {
+                ...options,
+                forceFresh: true,
+                _qualityRetry: _qualityRetry + 1,
+                _structureFallback: false,
+                retryReason: `BILINGUAL SLOT REPAIR REQUIRED: ${reason}. Preserve EVERY quotation pair and every protected boundary exactly once. The model must translate the missing dialogue inside its ORIGINAL quotation marks. Never merge or remove quoted slots.`,
+            });
+        }
         if (!internalInputFast && salvageText && salvageText.trim()) {
             const isKoEnBilingualRequest =
                 (settings.dialogueBilingual || 'off') === 'ko-en' && targetLang === 'Korean';
@@ -2221,6 +2235,29 @@ function normalizeMalformedBilingualQuoteLayout(original, output) {
     ));
 }
 
+// Restore a quote pair only when its original protected anchors survive in the
+// translated response. This does not guess which Korean text belongs to a slot.
+function restoreAnchoredDialogueQuotes(original, translated) {
+    const source = String(original || '');
+    let result = String(translated || '');
+    const token = '@@CATFMT_';
+    if (!source.includes(token) || !result.includes(token)) return result;
+    const re = /"(@@CATFMT_\d{4}@@)([^"\n]*?)(@@CATFMT_\d{4}@@)"/g;
+    for (const match of source.matchAll(re)) {
+        const open = match[1], close = match[3];
+        const start = result.indexOf(open);
+        if (start < 0 || result.indexOf(open, start + open.length) !== -1) continue;
+        const end = result.indexOf(close, start + open.length);
+        if (end < 0 || result.indexOf(close, end + close.length) !== -1) continue;
+        const inner = result.slice(start + open.length, end);
+        if (!/[가-힣]/.test(inner) || inner.includes('"') || inner.includes('\n')) continue;
+        if (result[start - 1] !== '"' && result[end + close.length] !== '"') {
+            result = result.slice(0, start) + '"' + result.slice(start, end + close.length) + '"' + result.slice(end + close.length);
+        }
+    }
+    return result;
+}
+
 // 인용구 개수가 어긋나도 순서대로 복원 가능한 슬롯은 최대한 병기로 살린다.
 // 최종 실패 시 한국어 전용으로 강등하지 않기 위한 fail-open 조립기다.
 export function repairBilingualPartially(original, output) {
@@ -2281,25 +2318,32 @@ export function repairBilingualPartially(original, output) {
             }
         }
     } else {
-        // 슬롯 개수까지 어긋난 부분 복구에서는 원문과 정확히 같은 한국어 통과 슬롯을
-        // 후보에서 먼저 제외한다. 비명이 뒤 영문 대사의 번역으로 소비되는 일을 막는다.
-        const passCounts = new Map();
-        for (const slot of sourceSlots.filter(item => isKoreanPassThroughDialogue(item.content))) {
-            const key = canonizeDialogueForCompare(slot.content);
-            passCounts.set(key, (passCounts.get(key) || 0) + 1);
+        // Never zip unmatched quote lists globally: one missing quote shifts every later
+        // English/Korean pairing. Align only within the same newline-delimited paragraph.
+        const sourceParagraphs = String(original).split('\n');
+        const outputParagraphs = normalizedOutput.split('\n');
+        if (sourceParagraphs.length === outputParagraphs.length) {
+            let sourceOffset = 0;
+            let outputOffset = 0;
+            for (let paragraph = 0; paragraph < sourceParagraphs.length; paragraph++) {
+                const sourceLocal = collectQuotedSegmentsOutsideFences(sourceParagraphs[paragraph]);
+                const outputLocal = collectQuotedSegmentsOutsideFences(outputParagraphs[paragraph]);
+                // If any quote was dropped within a paragraph, its slots are ambiguous.
+                // Do not assign the following quote to the missing quote's translation.
+                if (sourceLocal.length === outputLocal.length) {
+                    for (let i = 0; i < sourceLocal.length; i++) {
+                        const sourceDialogue = sourceLocal[i];
+                        const candidate = { ...outputLocal[i], index: outputLocal[i].index + outputOffset };
+                        if (shouldAssembleKoEnDialogue(sourceDialogue.content)) {
+                            addTargetRepair(sourceDialogue, candidate);
+                        }
+                    }
+                }
+                sourceOffset += sourceParagraphs[paragraph].length + 1;
+                outputOffset += outputParagraphs[paragraph].length + 1;
+            }
         }
-        const targetCandidates = out.filter(candidate => {
-            const key = canonizeDialogueForCompare(candidate.content);
-            const remaining = passCounts.get(key) || 0;
-            if (remaining <= 0) return true;
-            passCounts.set(key, remaining - 1);
-            return false;
-        });
-        let sourceIndex = 0;
-        for (const candidate of targetCandidates) {
-            if (sourceIndex >= sourceTargets.length) break;
-            if (addTargetRepair(sourceTargets[sourceIndex], candidate)) sourceIndex++;
-        }
+
     }
 
     let result = normalizedOutput;
