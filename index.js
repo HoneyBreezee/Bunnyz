@@ -1062,63 +1062,54 @@ async function handleEditAreaTranslation(editArea, msgId, abortSignal, isInput =
 }
 
 function revertMessage(id) {
-    const msgId = parseInt(id, 10); const msg = getLiveChat()?.[msgId]; if (!msg) return;
+    const msgId = parseInt(id, 10);
+    const msg = getLiveChat()?.[msgId];
+    if (!msg) return;
     _translationApplyTokens.delete(msgId);
-    const editArea = $(`.mes[mesid="${msgId}"]`).find('textarea.edit_textarea:visible, textarea.mes_edit_textarea:visible, textarea:visible').first();
-    if (editArea.length > 0) { const originalText = editArea.data('bunny-original-text'); if (originalText) { setTextareaValue(editArea[0], originalText); editArea.removeData('bunny-original-text').removeData('bunny-last-translated').removeData('bunny-last-target-lang'); catNotify(`${getThemeEmoji()} 원본 텍스트로 복구 완료!`, "success"); } else { catNotify("⚠️ 복구할 원본이 없습니다.", "warning"); } return; }
+    const block = $(`.mes[mesid="${msgId}"]`);
+    const editArea = block.find('textarea.edit_textarea:visible, textarea.mes_edit_textarea:visible').first();
+    const original = msg.extra?.original_mes || editArea.data('bunny-original-text');
     if (clearInternalInputState(msg)) {
-        $(`.mes[mesid="${msgId}"]`).removeAttr('data-bunny-translated');
+        block.removeAttr('data-bunny-translated');
         stContext.updateMessageBlock(msgId, msg);
         scheduleChatSave(`internal input revert ${msgId}`);
-        catNotify(`${getThemeEmoji()} 내부 번역을 해제하고 한국어 원문으로 복구했어요.`, 'success');
+        catNotify(`${getThemeEmoji()} 원문 복구 완료!`, 'success');
         return;
     }
-    if (msg.extra?.display_text) delete msg.extra.display_text;
-    if (msg.extra?.cat_literal) delete msg.extra.cat_literal;
-            delete msg.extra.cat_prev_display;
-    if (msg.extra?.original_mes) {
-        // 🚨 입력 메시지는 msg.mes가 번역문이므로 원문 복원 필요
-        // 출력 메시지는 msg.mes가 이미 원문이므로 덮어써도 동일
-        msg.mes = msg.extra.original_mes;
-        delete msg.extra.original_mes;
+    if (!original) {
+        catNotify('⚠️ 복구할 원문이 없습니다.', 'warning');
+        return;
     }
-    if (msg.extra?.swipe_translations && msg.swipe_id !== undefined) {
+    // Restore both the canonical ST source and its active swipe, then clear
+    // every Bunny display override. The old implementation returned early
+    // when the edit textarea was open, leaving Korean display_text active.
+    msg.mes = original;
+    if (Array.isArray(msg.swipes) && Number.isInteger(msg.swipe_id) &&
+        msg.swipe_id >= 0 && msg.swipe_id < msg.swipes.length) {
+        msg.swipes[msg.swipe_id] = original;
+    }
+    if (editArea.length) {
+        setTextareaValue(editArea[0], original);
+        editArea.removeData('bunny-original-text').removeData('bunny-last-translated').removeData('bunny-last-target-lang');
+    }
+    delete msg.extra.display_text;
+    delete msg.extra.original_mes;
+    delete msg.extra.cat_literal;
+    delete msg.extra.cat_prev_display;
+    delete msg.extra.cat_swipe_id;
+    if (msg.extra.swipe_translations && msg.swipe_id !== undefined) {
         delete msg.extra.swipe_translations[msg.swipe_id];
     }
-    if (msg.extra?.cat_swipe_id !== undefined) delete msg.extra.cat_swipe_id;
-    
-    // 🚨 Scene Board 확장 호환: sceneBoard.text도 복원
-    if (msg.extra?.sceneBoard?.cat_original_text) {
+    if (msg.extra.sceneBoard?.cat_original_text) {
         msg.extra.sceneBoard.text = msg.extra.sceneBoard.cat_original_text;
         delete msg.extra.sceneBoard.cat_original_text;
-        console.log(`[CAT] 🎬 Scene Board 원본 복원`);
     }
-    
-    // 🚨 Scene Board DOM 복원
-    const mesElForRevert = $(`.mes[mesid="${msgId}"]`);
-    const sbRevertCandidates = [
-        'pre.sb-board-text',
-        '.sb-board-text',
-        '[class*="sceneBoard"] pre',
-        '[class*="scene-board"] pre',
-        '[class*="sb-board"]'
-    ];
-    for (const sel of sbRevertCandidates) {
-        const sbEl = mesElForRevert.find(sel).first();
-        if (sbEl.length > 0 && sbEl.attr('data-bunny-original')) {
-            sbEl.text(sbEl.attr('data-bunny-original'));
-            sbEl.removeAttr('data-bunny-original');
-            console.log(`[CAT] 🎬 Scene Board DOM 복원 (${sel})`);
-            break;
-        }
-    }
-    
-    $(`.mes[mesid="${msgId}"]`).removeAttr('data-bunny-translated');
-    
+    block.removeAttr('data-bunny-translated');
     stContext.updateMessageBlock(msgId, msg);
     scheduleChatSave(`revert ${msgId}`);
-    catNotify(`${getThemeEmoji()} 원문 복구 완료!`, "success");
+    catNotify(`${getThemeEmoji()} 원문 복구 완료!`, 'success');
 }
+
 function detectDir(text) { return detectLanguageDirection(text, settings); }
 
 jQuery(async () => {
@@ -1163,6 +1154,20 @@ jQuery(async () => {
         }
     });
     
+    // Native ST pencil edits English source; Bunny carrot edits Korean display.
+    $(document).on('click', '.mes .mes_edit', function () {
+        const block = $(this).closest('.mes');
+        const id = parseInt(block.attr('mesid'), 10);
+        const msg = getLiveChat()?.[id];
+        if (!msg?.extra?.original_mes || isTranslatedEditActive(id, getLiveChat())) return;
+        const source = msg.extra.original_mes;
+        setTimeout(() => {
+            if (isTranslatedEditActive(id, getLiveChat())) return;
+            const area = block.find('textarea.edit_textarea:visible, textarea.mes_edit_textarea:visible').first();
+            if (area.length) setTextareaValue(area[0], source);
+        }, 0);
+    });
+
     // 🚨 메시지 편집 직접 감지 (옵저버 백업) — afterEditMode 'auto'/'notify' 안전 트리거
     stContext.eventSource.on(stContext.event_types.MESSAGE_EDITED, (msgId) => {
         console.log(`[CAT] 🔔 MESSAGE_EDITED 이벤트 수신 #${msgId}`);
@@ -1283,7 +1288,17 @@ jQuery(async () => {
         // 새 원문 적용
         msg.mes = newOriginal;
         msg.extra.original_mes = newOriginal;
-        
+        // Never mask a newly edited source with a stale Korean display.
+        delete msg.extra.display_text;
+        delete msg.extra.cat_literal;
+        delete msg.extra.cat_prev_display;
+        if (msg.extra.swipe_translations && msg.swipe_id !== undefined) {
+            delete msg.extra.swipe_translations[msg.swipe_id];
+        }
+        $(`.mes[mesid="${id}"]`).removeAttr('data-bunny-translated');
+        stContext.updateMessageBlock(id, msg);
+        scheduleChatSave(`source edit ${id}`);
+
         if (mode === 'auto') {
             delete msg.extra.display_text;
             delete msg.extra.cat_literal;
