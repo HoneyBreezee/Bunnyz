@@ -77,6 +77,7 @@ function scheduleTranslationVerification(msgId, expected) {
 
     const verify = (delay) => setTimeout(() => {
         if (_translationApplyTokens.get(msgId) !== token) return;
+        if (isManualSourceRestored(expectedChat?.[msgId])) return;
         const liveContext = getLiveContext();
         if (liveContext?.chat !== expectedChat) return;
         const current = expectedChat?.[msgId];
@@ -315,6 +316,14 @@ function saveSettings(updateBaseline = false) {
 
 // 🚨 beta.9: 진행 중 번역 중단 레지스트리 — 번역 중 버튼 재탭 = 중단
 const _activeTranslationAborts = new Map();
+// A manual source restore is an explicit opt-out from auto translation for
+// this message/swipe. Keep it on the message (not the DOM) across rerenders.
+function isManualSourceRestored(msg) {
+    return !!(msg?.extra?.bunny_manual_source_restore &&
+        msg.extra.bunny_manual_source_restore.swipe === (msg.swipe_id ?? null) &&
+        msg.extra.bunny_manual_source_restore.source === msg.mes);
+}
+
 const _internalInputEditTokens = new Map();
 
 export function abortMessageTranslation(msgId) {
@@ -460,6 +469,9 @@ async function processMessage(id, isInput = false, abortSignal = null, silent = 
     const processChatRef = getLiveChat();
     let msg = processChatRef?.[msgId];
     if (!msg) return;
+    // Do not automatically retranslate a message the user explicitly restored.
+    // Manual translation still works and clears this marker when applied.
+    if (isAutoEvent && isManualSourceRestored(msg)) return;
     if (isInput && getInternalInputState(msg)) {
         if (!isAutoEvent && !silent) {
             catNotify(`${getThemeEmoji()} 이미 내부 번역된 입력입니다. 🥕/🍖로 AI 전달문을 수정할 수 있어요.`, 'info');
@@ -809,6 +821,7 @@ async function doTranslateMessage(msgId, msg, textToTranslate, isInput, prevTran
         }
 
         if (!freshMsg.extra) freshMsg.extra = {};
+        delete freshMsg.extra.bunny_manual_source_restore;
         freshMsg.extra.original_mes = textToTranslate;
         // 🚨 beta.9: 직전 번역 백업 — 재번역으로 덮어쓰기 전 현재 번역문 보존 (↩️ 직전 번역 복귀용)
         if (freshMsg.extra.display_text && freshMsg.extra.display_text !== result.text) {
@@ -1066,6 +1079,10 @@ function revertMessage(id) {
     const msg = getLiveChat()?.[msgId];
     if (!msg) return;
     _translationApplyTokens.delete(msgId);
+    // Cancel a running translation so its late API result cannot overwrite
+    // the restored source. Also invalidate any delayed display verification.
+    const active = _activeTranslationAborts.get(msgId);
+    if (active && !active.signal.aborted) active.abort();
     const block = $(`.mes[mesid="${msgId}"]`);
     const editArea = block.find('textarea.edit_textarea:visible, textarea.mes_edit_textarea:visible').first();
     const original = msg.extra?.original_mes || editArea.data('bunny-original-text');
@@ -1084,6 +1101,8 @@ function revertMessage(id) {
     // every Bunny display override. The old implementation returned early
     // when the edit textarea was open, leaving Korean display_text active.
     msg.mes = original;
+    if (!msg.extra) msg.extra = {};
+    msg.extra.bunny_manual_source_restore = { swipe: msg.swipe_id ?? null, source: original };
     if (Array.isArray(msg.swipes) && Number.isInteger(msg.swipe_id) &&
         msg.swipe_id >= 0 && msg.swipe_id < msg.swipes.length) {
         msg.swipes[msg.swipe_id] = original;
