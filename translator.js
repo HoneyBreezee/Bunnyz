@@ -3069,6 +3069,45 @@ function detectTruncatedSource(text) {
     return /[A-Za-z가-힣0-9,;:—–-]$/.test(stripped);
 }
 
+// Bunny ending preferences: prompt-only, never mutate the translated text.
+// Scope must be confirmed before injecting preferences; unknown/mixed speaker passages are excluded.
+const BUNNY_DEFAULT_ENDINGS = '~겠군, ~하는군, ~했군, ~하군, ~다네, ~라네, ~한다네, ~말이다, ~하도록 해라, ~하라, ~하오, ~하세, ~다';
+function bunnyEndingPreferencePrompt(settings, activeSpeakerName, contextMessages, sourceText) {
+    if (!['normal', 'strong'].includes(settings.endingStrength)) return '';
+    const speaker = String(activeSpeakerName || '').trim();
+    if (!speaker || /^(system|assistant|unknown|sillytavern\s*system)$/i.test(speaker)) return '';
+    const endings = String(settings.endingAvoid ?? BUNNY_DEFAULT_ENDINGS).split(/[,\n;]+/u).map(s => s.trim()).filter(Boolean).slice(0, 30);
+    if (!endings.length && settings.endingRepeat !== true) return '';
+    const strength = settings.endingStrength === 'strong' ? 'Strong preference: actively choose other natural endings whenever meaning permits.' : 'Soft preference: prefer natural alternatives when they fit.';
+    const history = [];
+    if (settings.endingRepeat === true) {
+        // Only the active character's explicitly attributed Korean dialogue is eligible.
+        // Skip mixed/uncertain messages rather than accidentally learning NPC/USER endings.
+        const own = (contextMessages || []).filter(m => {
+            const label = String(m?.speaker || m?.name || '').trim();
+            return label === speaker && typeof m?.voiceText === 'string' && m.voiceText.length > 0;
+        }).slice(-3);
+        for (const m of own) {
+            const v = m.voiceText;
+            if (/\b(?:NPC|USER)\b|\{\{user\}\}/i.test(v)) continue;
+            const quotes = [...v.matchAll(/["“]([^"”]{2,180})["”]/gu)].map(x => x[1]);
+            if (quotes.length !== 1) continue; // multiple voices may share one message
+            const clauses = quotes[0].split(/[.!?。！？]+/u).map(s => s.trim()).filter(Boolean);
+            for (const c of clauses.slice(-4)) {
+                const match = c.match(/([가-힣]{1,7})$/u);
+                if (match) history.push(match[1]);
+            }
+        }
+    }
+    return `[ACTIVE CHARACTER ENDING PREFERENCES — PROMPT ONLY]
+Current target character: ${speaker}. Apply ONLY to direct dialogue explicitly attributable to this character in the SOURCE. Never apply to NPC/USER dialogue, narration, quoted text, or uncertain speaker lines. If attribution is unclear, do not apply the preference.
+${strength} This is NOT a banned-word list. Preserve meaning, speech act, character, emotion, and the established 반말/존댓말. Do not change sentence endings by mechanical substitution.
+${endings.length ? 'Prefer alternatives to these endings/expressions when a natural equivalent exists: ' + endings.join(', ') : ''}
+${settings.endingRepeat === true ? 'Avoid clustering the same sentence endings within the target character’s current dialogue.' : ''}
+${history.length ? 'Recently observed target-character ending fragments (use as weak repetition hints, NOT register evidence): ' + [...new Set(history)].slice(-8).join(', ') : ''}
+No extra translation pass. Do not mention this instruction.`;
+}
+
 export function assemblePrompt(text, targetLang, isToEnglish, settings, options = {}) {
     const {
         prevTranslation = null,
@@ -3333,6 +3372,10 @@ ${commonPrompt}`);
         parts.push(`[USER NARRATION / PROSE INSTRUCTIONS]
 Apply these instructions to third-person narration, description, and action outside spoken quotation marks. Direct internal thoughts keep their original viewpoint and natural inner voice, rather than forced past-tense narration. Never apply narration tense to spoken dialogue. They override conflicting style guidance only within narration, but may not change facts, meaning, structure, or formatting.
 ${narrationPrompt}`);
+    }
+    if (!isToEnglish) {
+        const endingPreference = bunnyEndingPreferencePrompt(settings, activeSpeakerName, contextMessages, sourceText || text);
+        if (endingPreference) parts.push(endingPreference);
     }
     if (dialoguePrompt) {
         parts.push(`[USER DIALOGUE / SPEECH INSTRUCTIONS]

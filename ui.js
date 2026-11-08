@@ -247,6 +247,15 @@ export function setupSettingsPanel(settings, stContext, saveSettingsFn, restoreD
                 <textarea id="bt-common-prompt" class="text_pole" rows="3" placeholder="서술과 대사 전체에 적용할 지시사항">${settings.commonPrompt || settings.userPrompt || ''}</textarea>
                 <label style="font-size:0.82em; opacity:0.78; margin-top:5px;">서술 지시사항</label>
                 <textarea id="bt-narration-prompt" class="text_pole" rows="3" placeholder="서술과 묘사에만 적용할 문체·문장 지시사항">${settings.narrationPrompt || ''}</textarea>
+                <div class="bunny-setting-row" style="margin-top:10px; border-top:1px solid var(--SmartThemeBorderColor, #666); padding-top:8px;">
+                    <label>🐰 현재 캐릭터 대사 말끝 취향</label>
+                    <label style="font-size:0.82em;opacity:0.8;">피하고 싶은 말끝·표현 (쉼표 또는 줄바꿈으로 구분)</label>
+                    <textarea id="bt-ending-avoid" class="text_pole" rows="2" placeholder="~겠군, ~하는군, ~했군, ~하군, ~다네, ~라네, ~한다네, ~말이다, ~하도록 해라, ~하라, ~하오, ~하세, ~다">${settings.endingAvoid ?? '~겠군, ~하는군, ~했군, ~하군, ~다네, ~라네, ~한다네, ~말이다, ~하도록 해라, ~하라, ~하오, ~하세, ~다'}</textarea>
+                    <label>적용 강도</label>
+                    <select id="bt-ending-strength" class="text_pole"><option value="off">꺼짐</option><option value="normal">보통</option><option value="strong">강하게</option></select>
+                    <label style="display:flex;align-items:center;gap:7px;font-size:0.88em;"><input type="checkbox" id="bt-ending-repeat" /> 말끝 반복 줄이기 (현재 캐릭터의 최근 대사 참고)</label>
+                    <small style="opacity:0.7;">현재 캐릭터의 직접 대사에만 적용 · NPC/USER/서술 제외 · 후처리 치환 없음 · 추가 API 호출 없음</small>
+                </div>
                 <label style="font-size:0.82em; opacity:0.78; margin-top:5px;">대사 지시사항</label>
                 <textarea id="bt-dialogue-prompt" class="text_pole" rows="3" placeholder="따옴표 안 대사에만 적용할 말투·호칭 지시사항">${settings.dialoguePrompt || ''}</textarea>
             </div>
@@ -301,7 +310,8 @@ export function setupSettingsPanel(settings, stContext, saveSettingsFn, restoreD
     
     // 모든 설정 필드에 자동 저장 연결
     $('#bt-profile, #bt-auto-mode, #bt-non-gemini-fast, #bt-bidirectional, #bt-internal-input, #bt-internal-input-lang, #bt-dialogue-bilingual, #bt-literal-bilingual, #bt-lang, #bt-style, #bt-temperature, #bt-max-tokens, #bt-context-range, #bt-retranslate-strength, #bt-after-edit, #bt-preview-cleanup').on('change', autoSave);
-    $('#bt-key, #bt-model-custom, #bt-common-prompt, #bt-narration-prompt, #bt-dialogue-prompt, #bt-input-user-prompt, #bt-dictionary').on('input', autoSave);
+    $('#bt-key, #bt-model-custom, #bt-common-prompt, #bt-narration-prompt, #bt-dialogue-prompt, #bt-input-user-prompt, #bt-dictionary, #bt-ending-avoid').on('input', autoSave);
+    $('#bt-ending-strength, #bt-ending-repeat').on('change', autoSave);
 
     $('#bt-non-gemini-fast').on('change', function () {
         if ($(this).val() !== 'on') return;
@@ -358,6 +368,7 @@ export function setupSettingsPanel(settings, stContext, saveSettingsFn, restoreD
         }
     });
     $('#bt-style').val(settings.style || 'natural').on('change', function () { if (_suppressAutoSave) return; const preset = STYLE_PRESETS[$(this).val()]; if (preset) $('#bt-temperature').val(preset.temperature); });
+    $('#bt-ending-strength').val(settings.endingStrength || 'off'); $('#bt-ending-repeat').prop('checked', settings.endingRepeat === true);
     $('#bt-auto-mode').val(settings.autoMode); $('#bt-non-gemini-fast').val(settings.nonGeminiFastMode || 'off'); $('#bt-bidirectional').val(settings.bidirectional || 'off'); $('#bt-internal-input').val(settings.internalInputTranslation || 'off'); $('#bt-internal-input-lang').val(normalizeInternalInputLanguage(settings.internalInputLanguage)); $('#bt-dialogue-bilingual').val(settings.dialogueBilingual || 'off'); $('#bt-literal-bilingual').val(settings.literalBilingual || 'off'); $('#bt-lang').val(settings.targetLang); $('#bt-temperature').val(settings.temperature || 0.3);
     const syncInternalInputLanguageState = () => $('#bt-internal-input-lang').prop('disabled', ($('#bt-internal-input').val() || 'off') !== 'on');
     $('#bt-internal-input').on('change', syncInternalInputLanguageState);
@@ -398,6 +409,9 @@ export function setupSettingsPanel(settings, stContext, saveSettingsFn, restoreD
     $('#bt-common-prompt').on('input', function () { settings.commonPrompt = $(this).val(); });
     $('#bt-narration-prompt').on('input', function () { settings.narrationPrompt = $(this).val(); });
     $('#bt-dialogue-prompt').on('input', function () { settings.dialoguePrompt = $(this).val(); });
+    $('#bt-ending-avoid').on('input', function () { settings.endingAvoid = $(this).val(); });
+    $('#bt-ending-strength').on('change', function () { settings.endingStrength = $(this).val(); });
+    $('#bt-ending-repeat').on('change', function () { settings.endingRepeat = $(this).prop('checked'); });
     $('#bt-input-user-prompt').on('input', function () { settings.inputUserPrompt = $(this).val(); });
     
     // 🚨 번역 프롬프트 프리셋 시스템
@@ -676,6 +690,7 @@ export function collectSettings() {
         temperature: parseFloat($('#bt-temperature').val()) || _settingsRef?.temperature || 0.3, maxTokens: parseInt($('#bt-max-tokens').val()) || _settingsRef?.maxTokens || 8192,
         contextRange: normalizeContextRange($('#bt-context-range').val(), normalizeContextRange(_settingsRef?.contextRange)),
         commonPrompt: safeCommonPromptValue, narrationPrompt: safeNarrationPromptValue, dialoguePrompt: safeDialoguePromptValue, userPrompt: '', inputUserPrompt: safeInputPromptValue, dictionary: safeDictValue,
+        endingAvoid: $('#bt-ending-avoid').val() ?? _settingsRef?.endingAvoid ?? '', endingStrength: $('#bt-ending-strength').val() || _settingsRef?.endingStrength || 'off', endingRepeat: $('#bt-ending-repeat').prop('checked'),
         retranslateStrength: $('#bt-retranslate-strength').val() || _settingsRef?.retranslateStrength || 'normal',
         afterEditMode: $('#bt-after-edit').val() || _settingsRef?.afterEditMode || 'notify',
         previewTranslate: _settingsRef?.previewTranslate || 'off',
