@@ -471,7 +471,7 @@ async function processMessage(id, isInput = false, abortSignal = null, silent = 
     if (!msg) return;
     // Do not automatically retranslate a message the user explicitly restored.
     // Manual translation still works and clears this marker when applied.
-    if (isManualSourceRestored(msg) && (isAutoEvent || silent)) return;
+    if (isAutoEvent && isManualSourceRestored(msg)) return;
     if (isInput && getInternalInputState(msg)) {
         if (!isAutoEvent && !silent) {
             catNotify(`${getThemeEmoji()} 이미 내부 번역된 입력입니다. 🥕/🍖로 AI 전달문을 수정할 수 있어요.`, 'info');
@@ -820,13 +820,6 @@ async function doTranslateMessage(msgId, msg, textToTranslate, isInput, prevTran
             return;
         }
 
-        // A restore may have happened while the API request was in flight.
-        // Never let that late response replace the restored original.
-        if (isManualSourceRestored(freshMsg)) {
-            console.log(`[CAT] ⏭️ 원문 복구 후 도착한 번역 결과 폐기 #${msgId}`);
-            _translationApplyTokens.delete(msgId);
-            return;
-        }
         if (!freshMsg.extra) freshMsg.extra = {};
         delete freshMsg.extra.bunny_manual_source_restore;
         freshMsg.extra.original_mes = textToTranslate;
@@ -1131,39 +1124,7 @@ function revertMessage(id) {
         delete msg.extra.sceneBoard.cat_original_text;
     }
     block.removeAttr('data-bunny-translated');
-    // Clear stale UI edit caches too; they can reapply the previous Korean
-    // display when ST rerenders the message shortly after restoration.
-    block.removeData('bunny-edit-display').removeData('bunny-edit-original')
-        .removeData('bunny-edit-active').removeData('bunny-edit-type');
     stContext.updateMessageBlock(msgId, msg);
-    // Recheck the rendered message after pending ST render/update callbacks.
-    // No new translation request or text substitution is performed.
-    const restoredChat = getLiveChat();
-    const restoredSwipe = msg.swipe_id ?? null;
-    for (const delay of [100, 400, 1000]) {
-        setTimeout(() => {
-            if (getLiveChat() !== restoredChat) return;
-            const current = restoredChat?.[msgId];
-            if (!current || (current.swipe_id ?? null) !== restoredSwipe ||
-                !isManualSourceRestored(current)) return;
-            let needsRender = false;
-            if (current.extra?.display_text) {
-                delete current.extra.display_text;
-                delete current.extra.original_mes;
-                delete current.extra.cat_literal;
-                needsRender = true;
-            }
-            if (current.mes !== original) {
-                current.mes = original;
-                needsRender = true;
-            }
-            if (needsRender) {
-                $(`.mes[mesid="${msgId}"]`).removeAttr('data-bunny-translated');
-                stContext.updateMessageBlock(msgId, current);
-                console.warn(`[CAT] 🛡️ 복구 원문 표시 재확인 #${msgId} (${delay}ms)`);
-            }
-        }, delay);
-    }
     scheduleChatSave(`revert ${msgId}`);
     catNotify(`${getThemeEmoji()} 원문 복구 완료!`, 'success');
 }
