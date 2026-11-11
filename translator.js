@@ -3075,7 +3075,10 @@ const BUNNY_DEFAULT_ENDINGS = '~겠군, ~하는군, ~했군, ~하군, ~다네, ~
 function bunnyEndingPreferencePrompt(settings, activeSpeakerName, contextMessages, sourceText) {
     if (!['normal', 'strong'].includes(settings.endingStrength)) return '';
     const speaker = String(activeSpeakerName || '').trim();
-    if (!speaker || /^(system|assistant|unknown|sillytavern\s*system)$/i.test(speaker)) return '';
+    // Speaker metadata may be absent even when the source clearly attributes dialogue.
+    // Keep the preference instruction active; the model must scope it to attributable
+    // dialogue by the current character and leave uncertain/NPC/USER lines untouched.
+    const confirmedSpeaker = speaker && !/^(system|assistant|unknown|sillytavern\s*system)$/i.test(speaker) ? speaker : '';
     const endings = String(settings.endingAvoid ?? BUNNY_DEFAULT_ENDINGS).split(/[,\n;]+/u).map(s => s.trim()).filter(Boolean).slice(0, 30);
     if (!endings.length && settings.endingRepeat !== true) return '';
     const strength = settings.endingStrength === 'strong' ? 'Strong preference: actively choose other natural endings whenever meaning permits.' : 'Soft preference: prefer natural alternatives when they fit.';
@@ -3100,7 +3103,7 @@ function bunnyEndingPreferencePrompt(settings, activeSpeakerName, contextMessage
         }
     }
     return `[ACTIVE CHARACTER ENDING PREFERENCES — PROMPT ONLY]
-Current target character: ${speaker}. Apply ONLY to direct dialogue explicitly attributable to this character in the SOURCE. Never apply to NPC/USER dialogue, narration, quoted text, or uncertain speaker lines. If attribution is unclear, do not apply the preference.
+Current target character: ${confirmedSpeaker || "the active assistant character, identified from the SOURCE scene"}. Apply ONLY to direct dialogue explicitly attributable to this character in the SOURCE. Never apply to NPC/USER dialogue, narration, quoted text, or uncertain speaker lines. If attribution is unclear, do not apply the preference.
 ${strength} This is NOT a banned-word list. Preserve meaning, speech act, character, emotion, and the established 반말/존댓말. Do not change sentence endings by mechanical substitution.
 ${endings.length ? 'Prefer alternatives to these endings/expressions when a natural equivalent exists: ' + endings.join(', ') : ''}
 ${settings.endingRepeat === true ? 'Avoid clustering the same sentence endings within the target character’s current dialogue.' : ''}

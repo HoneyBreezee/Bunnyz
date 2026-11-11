@@ -409,9 +409,9 @@ export function setupSettingsPanel(settings, stContext, saveSettingsFn, restoreD
     $('#bt-common-prompt').on('input', function () { settings.commonPrompt = $(this).val(); });
     $('#bt-narration-prompt').on('input', function () { settings.narrationPrompt = $(this).val(); });
     $('#bt-dialogue-prompt').on('input', function () { settings.dialoguePrompt = $(this).val(); });
-    $('#bt-ending-avoid').on('input', function () { settings.endingAvoid = $(this).val(); });
-    $('#bt-ending-strength').on('change', function () { settings.endingStrength = $(this).val(); });
-    $('#bt-ending-repeat').on('change', function () { settings.endingRepeat = $(this).prop('checked'); });
+    $('#bt-ending-avoid').on('input', function () { settings.endingAvoid = $(this).val(); saveSettingsFn(); });
+    $('#bt-ending-strength').on('change', function () { settings.endingStrength = $(this).val(); saveSettingsFn(); });
+    $('#bt-ending-repeat').on('change', function () { settings.endingRepeat = $(this).prop('checked'); saveSettingsFn(); });
     $('#bt-input-user-prompt').on('input', function () { settings.inputUserPrompt = $(this).val(); });
     
     // 🚨 번역 프롬프트 프리셋 시스템
