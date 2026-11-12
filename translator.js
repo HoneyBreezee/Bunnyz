@@ -746,7 +746,9 @@ async function fetchTranslationAttempt(text, settings, stContext, options = {}) 
         onCacheMiss = null,
         internalInputFast = false,
         internalInputStrongRetry = false,
-        retryInstruction = ''
+        retryInstruction = '',
+        sourceMessageName = '',
+        sourceIsUser = false
     } = options;
     if (!text || text.trim() === "") return null;
     if (_qualityRetry === 0) {
@@ -879,11 +881,13 @@ async function fetchTranslationAttempt(text, settings, stContext, options = {}) 
     // 🚨 캐릭터 카드 힌트 추출 (RP 톤 일관성)
     const characterHints = gatherCharacterHints(stContext);
     
+    const speakerIdentity = resolveBunnySpeakerIdentity(stContext, { sourceMessageName, sourceIsUser });
     const prompt = assemblePrompt(preSwapped, targetLang, isToEnglish, settings, {
         prevTranslation,
         contextMessages,
         characterHints,
-        activeSpeakerName: !isToEnglish ? (() => { const name = String(stContext?.characters?.[stContext?.characterId]?.name || stContext?.name2 || '').trim(); return /^(sillytavern\s*system|system|assistant|unknown)$/i.test(name) ? '' : name; })() : '',
+        activeSpeakerName: !isToEnglish ? speakerIdentity.character : '',
+        userPersonaName: !isToEnglish ? speakerIdentity.user : '',
         structureProtected: structureProtection.hasStructure,
         sourceText: text,
         retryReason,
@@ -3069,6 +3073,22 @@ function detectTruncatedSource(text) {
     return /[A-Za-z가-힣0-9,;:—–-]$/.test(stripped);
 }
 
+// Resolve the actual assistant message author from the current SillyTavern chat.
+// Group chats may have a different speaker for each message; name2 alone is insufficient.
+function resolveBunnySpeakerIdentity(stContext, options = {}) {
+    const live = globalThis.SillyTavern?.getContext?.() || stContext || {};
+    const name = value => String(value || '').trim();
+    const valid = value => value && !/^(sillytavern\s*system|system|assistant|unknown|character)$/i.test(value);
+    const userName = name(live.name1 || stContext?.name1);
+    if (options.sourceIsUser === true) return { character: '', user: userName };
+    const authored = name(options.sourceMessageName);
+    const characters = live.characters || stContext?.characters || [];
+    const selected = name(characters[live.characterId]?.name || live.name2 || stContext?.name2);
+    // The actual non-user message name takes precedence, including group-chat turns.
+    const character = valid(authored) ? authored : valid(selected) ? selected : '';
+    return { character, user: userName };
+}
+
 // Bunny ending preferences: prompt-only, never mutate the translated text.
 // Scope must be confirmed before injecting preferences; unknown/mixed speaker passages are excluded.
 const BUNNY_DEFAULT_ENDINGS = '~겠군, ~하는군, ~했군, ~하군, ~다네, ~라네, ~한다네, ~말이다, ~하도록 해라, ~하라, ~하오, ~하세, ~다';
@@ -3103,7 +3123,7 @@ function bunnyEndingPreferencePrompt(settings, activeSpeakerName, contextMessage
         }
     }
     return `[ACTIVE CHARACTER ENDING PREFERENCES — PROMPT ONLY]
-Current target character: ${confirmedSpeaker || "the active assistant character, identified from the SOURCE scene"}. Apply ONLY to direct dialogue explicitly attributable to this character in the SOURCE. Never apply to NPC/USER dialogue, narration, quoted text, or uncertain speaker lines. If attribution is unclear, do not apply the preference.
+Current target character: ${confirmedSpeaker || "unidentified"}. Apply ONLY to direct dialogue explicitly attributable to this character in the SOURCE. Never apply to NPC/USER dialogue, narration, quoted text, or uncertain speaker lines. If attribution is unclear, do not apply the preference.
 ${strength} This is NOT a banned-word list. Preserve meaning, speech act, character, emotion, and the established 반말/존댓말. Do not change sentence endings by mechanical substitution.
 ${endings.length ? 'Prefer alternatives to these endings/expressions when a natural equivalent exists: ' + endings.join(', ') : ''}
 ${settings.endingRepeat === true ? 'Avoid clustering the same sentence endings within the target character’s current dialogue.' : ''}
@@ -3117,6 +3137,7 @@ export function assemblePrompt(text, targetLang, isToEnglish, settings, options 
         contextMessages = [],
         characterHints = null,
         activeSpeakerName = '',
+        userPersonaName = '',
         structureProtected = false,
         sourceText = text,
         retryReason = null,
@@ -3375,6 +3396,12 @@ ${commonPrompt}`);
         parts.push(`[USER NARRATION / PROSE INSTRUCTIONS]
 Apply these instructions to third-person narration, description, and action outside spoken quotation marks. Direct internal thoughts keep their original viewpoint and natural inner voice, rather than forced past-tense narration. Never apply narration tense to spoken dialogue. They override conflicting style guidance only within narration, but may not change facts, meaning, structure, or formatting.
 ${narrationPrompt}`);
+    }
+    if (!isToEnglish && activeSpeakerName) {
+        parts.push(`[SPEAKER IDENTITY — SILLYTAVERN METADATA]
+Current assistant character: ${activeSpeakerName}
+${userPersonaName ? `Current USER persona: ${userPersonaName}` : 'Current USER persona: unspecified'}
+The assistant character is the target for character-specific dialogue preferences. Identify who actually speaks each quoted line from the SOURCE; never apply the character's preferences to NPC or USER dialogue. The author of a message is not necessarily the speaker of every quoted line.`);
     }
     if (!isToEnglish) {
         const endingPreference = bunnyEndingPreferencePrompt(settings, activeSpeakerName, contextMessages, sourceText || text);
